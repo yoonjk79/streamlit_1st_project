@@ -1,45 +1,30 @@
 import streamlit as st
-import re
 
-def shorten_text(text, target_bytes):
-    # 축약어 사전
-    contractions = {
-        "are not": "aren't", "cannot": "can't", "could not": "couldn't",
-        "did not": "didn't", "does not": "doesn't", "do not": "don't",
-        "had not": "hadn't", "has not": "hasn't", "have not": "haven't",
-        "he is": "he's", "she is": "she's", "it is": "it's",
-        "i am": "I'm", "i will": "I'll", "i have": "I've",
-        "let us": "let's", "might not": "mightn't", "must not": "mustn't",
-        "should not": "shouldn't", "that is": "that's", "they are": "they're",
-        "they have": "they've", "we are": "we're", "we have": "we've",
-        "were not": "weren't", "what is": "what's", "will not": "won't",
-        "would not": "wouldn't", "you are": "you're", "you have": "you've"
-    }
-    
-    # 축약어 적용
-    for full, contraction in contractions.items():
-        text = re.sub(r'\b' + full + r'\b', contraction, text, flags=re.IGNORECASE)
-    
-    # 불필요한 공백 제거
-    text = ' '.join(text.split())
-    
-    # 목표 바이트 수에 맞추기
-    while len(text.encode('utf-8')) > target_bytes and len(text) > 0:
-        text = text[:-1]
-    
-    return text
+def truncate_to_bytes(text, max_bytes, encoding='utf-8'):
+    """텍스트를 특정 바이트 단위로 잘라 반환하는 함수."""
+    encoded_text = text.encode(encoding)
+    if len(encoded_text) <= max_bytes:
+        return text
+    truncated_text = encoded_text[:max_bytes]
+    while True:
+        try:
+            return truncated_text.decode(encoding)
+        except UnicodeDecodeError:
+            truncated_text = truncated_text[:-1]
 
-st.title('텍스트 글자 수 줄이기')
+# Streamlit UI 구성
+st.title("바이트 단위 요약기")
+st.write("입력한 텍스트를 지정된 바이트 수에 맞춰 요약합니다.")
 
-input_text = st.text_area("줄일 텍스트를 입력하세요:", height=200)
-target_bytes = st.number_input("목표 바이트 수:", min_value=1, value=100)
+# 텍스트 입력
+user_input = st.text_area("텍스트를 입력하세요", height=200)
+max_bytes = st.number_input("최대 바이트 수", min_value=1, value=100, step=1)
 
-if st.button('글자 수 줄이기'):
-    if input_text:
-        shortened = shorten_text(input_text, target_bytes)
-        st.write("줄어든 텍스트:")
-        st.write(shortened)
-        st.write(f"원본 바이트 수: {len(input_text.encode('utf-8'))}")
-        st.write(f"줄어든 바이트 수: {len(shortened.encode('utf-8'))}")
+if st.button("요약하기"):
+    if user_input.strip():
+        summary = truncate_to_bytes(user_input, max_bytes)
+        st.subheader("요약된 텍스트")
+        st.text_area("요약 결과", summary, height=200)
+        st.write(f"요약된 텍스트 길이: {len(summary.encode('utf-8'))} 바이트")
     else:
-        st.write("텍스트를 입력해주세요.")
+        st.warning("텍스트를 입력해주세요!")
