@@ -3,6 +3,25 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import re
+import nltk
+import os
+
+nltk_data_dir = os.path.expanduser('~/nltk_data')
+if not os.path.exists(nltk_data_dir):
+    os.makedirs(nltk_data_dir)
+
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt', download_dir=nltk_data_dir, quiet=True)
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords', download_dir=nltk_data_dir, quiet=True)
+
+nltk.data.path.append(nltk_data_dir)
+
 
 # NLTK 데이터 다운로드
 nltk.download('punkt')
