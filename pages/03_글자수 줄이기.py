@@ -1,41 +1,8 @@
 import streamlit as st
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 import re
-import nltk
-import os
 
-nltk_data_dir = os.path.expanduser('~/nltk_data')
-if not os.path.exists(nltk_data_dir):
-    os.makedirs(nltk_data_dir)
-
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', download_dir=nltk_data_dir, quiet=True)
-
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords', download_dir=nltk_data_dir, quiet=True)
-
-nltk.data.path.append(nltk_data_dir)
-
-
-# NLTK 데이터 다운로드
-nltk.download('punkt')
-nltk.download('stopwords')
-
-def shorten_text(text, target_length):
-    # 단어 토큰화
-    words = word_tokenize(text)
-    
-    # 불용어 제거
-    stop_words = set(stopwords.words('english'))
-    filtered_words = [word for word in words if word.lower() not in stop_words]
-    
-    # 축약형 사용
+def shorten_text(text, target_bytes):
+    # 축약어 사전
     contractions = {
         "are not": "aren't", "cannot": "can't", "could not": "couldn't",
         "did not": "didn't", "does not": "doesn't", "do not": "don't",
@@ -49,30 +16,30 @@ def shorten_text(text, target_length):
         "would not": "wouldn't", "you are": "you're", "you have": "you've"
     }
     
-    for i, word in enumerate(filtered_words):
-        for full, contraction in contractions.items():
-            if word.lower() == full.split()[0]:
-                if i+1 < len(filtered_words) and filtered_words[i+1].lower() == full.split()[1]:
-                    filtered_words[i] = contraction
-                    filtered_words.pop(i+1)
-                    break
+    # 축약어 적용
+    for full, contraction in contractions.items():
+        text = re.sub(r'\b' + full + r'\b', contraction, text, flags=re.IGNORECASE)
     
-    # 목표 길이에 맞춰 단어 선택
-    shortened_text = ' '.join(filtered_words[:target_length])
+    # 불필요한 공백 제거
+    text = ' '.join(text.split())
     
-    return shortened_text
+    # 목표 바이트 수에 맞추기
+    while len(text.encode('utf-8')) > target_bytes and len(text) > 0:
+        text = text[:-1]
+    
+    return text
 
-st.title('텍스트 축소기')
+st.title('텍스트 글자 수 줄이기')
 
-input_text = st.text_area("축소할 텍스트를 입력하세요:", height=200)
-target_length = st.slider("목표 단어 수:", min_value=10, max_value=500, value=100)
+input_text = st.text_area("줄일 텍스트를 입력하세요:", height=200)
+target_bytes = st.number_input("목표 바이트 수:", min_value=1, value=100)
 
-if st.button('축소하기'):
+if st.button('글자 수 줄이기'):
     if input_text:
-        shortened = shorten_text(input_text, target_length)
-        st.write("축소된 텍스트:")
+        shortened = shorten_text(input_text, target_bytes)
+        st.write("줄어든 텍스트:")
         st.write(shortened)
-        st.write(f"원본 단어 수: {len(word_tokenize(input_text))}")
-        st.write(f"축소된 단어 수: {len(word_tokenize(shortened))}")
+        st.write(f"원본 바이트 수: {len(input_text.encode('utf-8'))}")
+        st.write(f"줄어든 바이트 수: {len(shortened.encode('utf-8'))}")
     else:
         st.write("텍스트를 입력해주세요.")
